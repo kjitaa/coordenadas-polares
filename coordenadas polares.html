@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Explorador de Coordenadas Polares</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    .contenedor {
+      max-width: 1000px;
+      margin: auto;
+      padding: 25px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .subtitulo {
+      text-align: center;
+      color: #5b6475;
+      margin-bottom: 25px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    }
+
+    .controles {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .control {
+      background: #f1f4f9;
+      padding: 15px;
+      border-radius: 12px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .valor {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      max-width: 650px;
+      height: auto;
+      margin: 20px auto;
+      border-radius: 12px;
+      background: white;
+      border: 1px solid #dce2eb;
+    }
+
+    .datos {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .dato {
+      background: #eef3ff;
+      padding: 14px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .dato strong {
+      display: block;
+      font-size: 13px;
+      color: #596273;
+      margin-bottom: 5px;
+    }
+
+    .dato span {
+      font-size: 19px;
+      font-weight: bold;
+    }
+
+    .explicacion {
+      margin-top: 20px;
+      padding: 18px;
+      background: #f7f8fa;
+      border-left: 5px solid #536dfe;
+      border-radius: 8px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 700px) {
+      .controles,
+      .datos {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="contenedor">
+
+    <div class="panel">
+
+      <h1>📐 Explorador de Coordenadas Polares</h1>
+
+      <p class="subtitulo">
+        Modifica los valores de <strong>r</strong> y <strong>θ</strong>
+        para observar cómo cambia la posición del punto.
+      </p>
+
+      <div class="controles">
+
+        <div class="control">
+
+          <label for="radio">
+            Distancia r
+          </label>
+
+          <input
+            type="range"
+            id="radio"
+            min="-5"
+            max="5"
+            step="0.1"
+            value="4"
+          >
+
+          <div class="valor">
+            r = <span id="valorR">4.0</span>
+          </div>
+
+        </div>
+
+
+        <div class="control">
+
+          <label for="angulo">
+            Ángulo θ
+          </label>
+
+          <input
+            type="range"
+            id="angulo"
+            min="-180"
+            max="360"
+            step="1"
+            value="60"
+          >
+
+          <div class="valor">
+            θ = <span id="valorTheta">60°</span>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <canvas id="grafica" width="700" height="550"></canvas>
+
+
+      <div class="datos">
+
+        <div class="dato">
+          <strong>COORDENADA POLAR</strong>
+          <span id="polar">(4.0, 60°)</span>
+        </div>
+
+        <div class="dato">
+          <strong>COORDENADA X</strong>
+          <span id="coordenadaX">2.00</span>
+        </div>
+
+        <div class="dato">
+          <strong>COORDENADA Y</strong>
+          <span id="coordenadaY">3.46</span>
+        </div>
+
+      </div>
+
+
+      <div class="explicacion">
+
+        <strong>💡 ¿Qué estás observando?</strong>
+
+        <p>
+          El valor <strong>r</strong> representa la distancia entre
+          el polo y el punto.
+        </p>
+
+        <p>
+          El valor <strong>θ</strong> representa el ángulo medido
+          desde el eje polar.
+        </p>
+
+        <p>
+          Cuando <strong>r &lt; 0</strong>, el punto se coloca en
+          la dirección opuesta al ángulo indicado.
+        </p>
+
+        <p>
+          Cuando <strong>θ &lt; 0</strong>, el giro se realiza
+          en sentido horario.
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+<script>
+
+const canvas = document.getElementById("grafica");
+const ctx = canvas.getContext("2d");
+
+const sliderR = document.getElementById("radio");
+const sliderTheta = document.getElementById("angulo");
+
+const valorR = document.getElementById("valorR");
+const valorTheta = document.getElementById("valorTheta");
+
+const polar = document.getElementById("polar");
+const coordenadaX = document.getElementById("coordenadaX");
+const coordenadaY = document.getElementById("coordenadaY");
+
+
+function dibujar() {
+
+  const r = parseFloat(sliderR.value);
+  const theta = parseFloat(sliderTheta.value);
+
+  const radianes = theta * Math.PI / 180;
+
+  const x = r * Math.cos(radianes);
+  const y = r * Math.sin(radianes);
+
+
+  valorR.textContent = r.toFixed(1);
+  valorTheta.textContent = theta + "°";
+
+  polar.textContent =
+    "(" + r.toFixed(1) + ", " + theta + "°)";
+
+  coordenadaX.textContent =
+    x.toFixed(2);
+
+  coordenadaY.textContent =
+    y.toFixed(2);
+
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+
+  const centroX = canvas.width / 2;
+  const centroY = canvas.height / 2;
+
+  const escala = 45;
+
+
+  // Ejes
+
+  ctx.strokeStyle = "#c7ced9";
+  ctx.lineWidth = 1;
+
+  ctx.beginPath();
+
+  ctx.moveTo(40, centroY);
+  ctx.lineTo(canvas.width - 40, centroY);
+
+  ctx.moveTo(centroX, 40);
+  ctx.lineTo(centroX, canvas.height - 40);
+
+  ctx.stroke();
+
+
+  // Cuadrícula
+
+  ctx.strokeStyle = "#e6eaf0";
+
+  for (let i = -7; i <= 7; i++) {
+
+    if (i === 0) continue;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      centroX + i * escala,
+      40
+    );
+
+    ctx.lineTo(
+      centroX + i * escala,
+      canvas.height - 40
+    );
+
+    ctx.stroke();
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      40,
+      centroY - i * escala
+    );
+
+    ctx.lineTo(
+      canvas.width - 40,
+      centroY - i * escala
+    );
+
+    ctx.stroke();
+
+  }
+
+
+  // Círculos de referencia
+
+  ctx.strokeStyle = "#d9dee7";
+
+  for (let radio = 1; radio <= 5; radio++) {
+
+    ctx.beginPath();
+
+    ctx.arc(
+      centroX,
+      centroY,
+      radio * escala,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.stroke();
+
+  }
+
+
+  // Dirección del ángulo
+
+  ctx.beginPath();
+
+  ctx.moveTo(centroX, centroY);
+
+  ctx.lineTo(
+    centroX + Math.cos(radianes) * 5 * escala,
+    centroY - Math.sin(radianes) * 5 * escala
+  );
+
+  ctx.strokeStyle = "#536dfe";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+
+  // Radio hasta el punto
+
+  const puntoX =
+    centroX + x * escala;
+
+  const puntoY =
+    centroY - y * escala;
+
+
+  ctx.beginPath();
+
+  ctx.moveTo(centroX, centroY);
+
+  ctx.lineTo(puntoX, puntoY);
+
+  ctx.strokeStyle = "#172033";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+
+  // Punto
+
+  ctx.beginPath();
+
+  ctx.arc(
+    puntoX,
+    puntoY,
+    9,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fillStyle = "#536dfe";
+  ctx.fill();
+
+
+  // Etiqueta del punto
+
+  ctx.fillStyle = "#172033";
+  ctx.font = "bold 16px Arial";
+
+  ctx.fillText(
+    "P",
+    puntoX + 12,
+    puntoY - 12
+  );
+
+
+  // Polo
+
+  ctx.beginPath();
+
+  ctx.arc(
+    centroX,
+    centroY,
+    6,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fillStyle = "#172033";
+  ctx.fill();
+
+
+  ctx.font = "bold 15px Arial";
+
+  ctx.fillText(
+    "Polo",
+    centroX + 10,
+    centroY + 20
+  );
+
+
+  // Eje polar
+
+  ctx.fillText(
+    "Eje polar",
+    canvas.width - 110,
+    centroY - 10
+  );
+
+}
+
+
+sliderR.addEventListener(
+  "input",
+  dibujar
+);
+
+sliderTheta.addEventListener(
+  "input",
+  dibujar
+);
+
+
+dibujar();
+
+</script>
+
+</body>
+</html>
